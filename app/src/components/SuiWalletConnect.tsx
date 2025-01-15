@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { OKXUniversalConnectUI, THEME } from "@okxconnect/ui"
 import { OKXSuiProvider } from "@okxconnect/sui-provider"
 import { SuiClient } from '@mysten/sui/client'
-import { TransactionBlock } from '@mysten/sui/transactions'
+import { Transaction } from '@mysten/sui/transactions'
+import WalletManager from './WalletManager'
 
 export default function SuiWalletConnect() {
   const [okxUniversalConnectUI, setOkxUniversalConnectUI] = useState<any>(null)
@@ -35,7 +36,6 @@ export default function SuiWalletConnect() {
       const provider = new OKXSuiProvider(okxUI)
       setSuiProvider(provider)
       
-      // Initialize SuiClient
       const client = new SuiClient({ url: 'https://fullnode.mainnet.sui.io' })
       setSuiClient(client)
     }
@@ -88,13 +88,13 @@ export default function SuiWalletConnect() {
       owner: address,
       options: { showContent: true },
     })
-    setObjects(objectsResponse.data.slice(0, 5)) // Limiting to first 5 objects for simplicity
+    setObjects(objectsResponse.data.slice(0, 5))
   }
 
   const sendTransaction = async () => {
     if (!suiClient || !accountInfo) return
 
-    const tx = new TransactionBlock()
+    const tx = new Transaction()
     const [coin] = tx.splitCoins(tx.gas, [1000])
     tx.transferObjects([coin], tx.pure(accountInfo.address))
 
@@ -103,7 +103,6 @@ export default function SuiWalletConnect() {
         transactionBlock: tx,
       })
       console.log('Transaction result:', result)
-      // Refresh balance and objects after transaction
       await fetchBalance(accountInfo.address)
       await fetchObjects(accountInfo.address)
     } catch (error) {
@@ -149,6 +148,7 @@ export default function SuiWalletConnect() {
           </button>
         </div>
       )}
+      <WalletManager />
     </div>
   )
 }
