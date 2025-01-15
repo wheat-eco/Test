@@ -5,8 +5,6 @@ import { OKXUniversalConnectUI, THEME } from "@okxconnect/ui"
 import { OKXSuiProvider } from "@okxconnect/sui-provider"
 import { SuiClient } from '@mysten/sui/client'
 import { Transaction } from '@mysten/sui/transactions'
-import WalletManager from './WalletManager'
-
 export default function SuiWalletConnect() {
   const [okxUniversalConnectUI, setOkxUniversalConnectUI] = useState<any>(null)
   const [suiProvider, setSuiProvider] = useState<any>(null)
@@ -148,7 +146,7 @@ export default function SuiWalletConnect() {
           </button>
         </div>
       )}
-      <WalletManager />
+      
     </div>
   )
 }
