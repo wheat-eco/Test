@@ -3,16 +3,17 @@
 import { useState, useEffect } from 'react'
 import { OKXUniversalConnectUI, THEME } from "@okxconnect/ui"
 import { OKXSuiProvider } from "@okxconnect/sui-provider"
-import { JsonRpcProvider, SuiObjectResponse } from '@mysten/sui.js'
+import { SuiClient } from '@mysten/sui/client'
+import { TransactionBlock } from '@mysten/sui/transactions'
 
 export default function SuiWalletConnect() {
   const [okxUniversalConnectUI, setOkxUniversalConnectUI] = useState<any>(null)
   const [suiProvider, setSuiProvider] = useState<any>(null)
+  const [suiClient, setSuiClient] = useState<SuiClient | null>(null)
   const [connected, setConnected] = useState(false)
   const [accountInfo, setAccountInfo] = useState<{ address: string; publicKey: string } | null>(null)
-  const [network, setNetwork] = useState<string>('mainnet')
   const [balance, setBalance] = useState<string>('0')
-  const [objects, setObjects] = useState<SuiObjectResponse[]>([])
+  const [objects, setObjects] = useState<any[]>([])
 
   useEffect(() => {
     const initOKXConnect = async () => {
@@ -33,6 +34,10 @@ export default function SuiWalletConnect() {
       setOkxUniversalConnectUI(okxUI)
       const provider = new OKXSuiProvider(okxUI)
       setSuiProvider(provider)
+      
+      // Initialize SuiClient
+      const client = new SuiClient({ url: 'https://fullnode.mainnet.sui.io' })
+      setSuiClient(client)
     }
 
     initOKXConnect()
@@ -45,7 +50,7 @@ export default function SuiWalletConnect() {
       const session = await okxUniversalConnectUI.openModal({
         namespaces: {
           sui: {
-            chains: [`sui:${network}`]
+            chains: ["sui:mainnet"]
           }
         }
       })
@@ -69,36 +74,41 @@ export default function SuiWalletConnect() {
     setObjects([])
   }
 
-  const switchNetwork = async (newNetwork: string) => {
-    if (!connected || !suiProvider) return
-
-    try {
-      await suiProvider.switchNetwork(`sui:${newNetwork}`)
-      setNetwork(newNetwork)
-      if (accountInfo) {
-        await fetchBalance(accountInfo.address)
-        await fetchObjects(accountInfo.address)
-      }
-    } catch (error) {
-      console.error("Failed to switch network:", error)
-    }
-  }
-
   const fetchBalance = async (address: string) => {
-    const provider = new JsonRpcProvider(`https://fullnode.${network}.sui.io`)
-    const balance = await provider.getBalance({
+    if (!suiClient) return
+    const balance = await suiClient.getBalance({
       owner: address,
     })
     setBalance(balance.totalBalance)
   }
 
   const fetchObjects = async (address: string) => {
-    const provider = new JsonRpcProvider(`https://fullnode.${network}.sui.io`)
-    const objectsResponse = await provider.getOwnedObjects({
+    if (!suiClient) return
+    const objectsResponse = await suiClient.getOwnedObjects({
       owner: address,
       options: { showContent: true },
     })
-    setObjects(objectsResponse.data.slice(0, 5)) // Limit to first 5 objects for simplicity
+    setObjects(objectsResponse.data.slice(0, 5)) // Limiting to first 5 objects for simplicity
+  }
+
+  const sendTransaction = async () => {
+    if (!suiClient || !accountInfo) return
+
+    const tx = new TransactionBlock()
+    const [coin] = tx.splitCoins(tx.gas, [1000])
+    tx.transferObjects([coin], tx.pure(accountInfo.address))
+
+    try {
+      const result = await suiProvider.signAndExecuteTransactionBlock({
+        transactionBlock: tx,
+      })
+      console.log('Transaction result:', result)
+      // Refresh balance and objects after transaction
+      await fetchBalance(accountInfo.address)
+      await fetchObjects(accountInfo.address)
+    } catch (error) {
+      console.error('Transaction failed:', error)
+    }
   }
 
   return (
@@ -116,32 +126,21 @@ export default function SuiWalletConnect() {
           <p className="mb-2">Connected to Sui Wallet</p>
           <p className="mb-2">Address: {accountInfo?.address}</p>
           <p className="mb-2">Public Key: {accountInfo?.publicKey}</p>
-          <p className="mb-2">Network: {network}</p>
           <p className="mb-2">Balance: {balance} SUI</p>
-          <div className="mb-2">
-            <button
-              onClick={() => switchNetwork('mainnet')}
-              className="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded mr-2"
-            >
-              Mainnet
-            </button>
-            <button
-              onClick={() => switchNetwork('testnet')}
-              className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded"
-            >
-              Testnet
-            </button>
-          </div>
-          <div className="mb-2">
-            <h2 className="text-xl font-bold">Objects (First 5):</h2>
-            <ul>
-              {objects.map((obj, index) => (
-                <li key={index} className="mb-1">
-                  ID: {obj.data?.objectId}, Type: {obj.data?.type}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <h2 className="text-xl font-bold mt-4 mb-2">Owned Objects (First 5):</h2>
+          <ul className="mb-4">
+            {objects.map((obj, index) => (
+              <li key={index} className="mb-1">
+                ID: {obj.data?.objectId}, Type: {obj.data?.type}
+              </li>
+            ))}
+          </ul>
+          <button
+            onClick={sendTransaction}
+            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-2"
+          >
+            Send Test Transaction
+          </button>
           <button
             onClick={disconnectWallet}
             className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
