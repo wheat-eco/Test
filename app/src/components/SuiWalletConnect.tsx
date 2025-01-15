@@ -15,7 +15,7 @@ export default function SuiWalletConnect() {
       const okxUI = await OKXUniversalConnectUI.init({
         dappMetaData: {
           icon: "https://static.okx.com/cdn/assets/imgs/247/58E63FEA47A2B7D7.png",
-          name: "My Sui DApp"
+          name: "WheatChain Dapp"
         },
         actionsConfiguration: {
           returnStrategy: 'none',
