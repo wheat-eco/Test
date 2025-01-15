@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@mysten/sui": "^1.19.0",
+    "@mysten/sui.js": "^0.54.1",
     "@okxconnect/sui-provider": "^1.6.9",
     "@okxconnect/ui": "^1.6.9",
     "next": "15.1.4",
