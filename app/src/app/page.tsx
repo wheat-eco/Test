@@ -1,4 +1,4 @@
-import SuiWalletConnect from './components/SuiWalletConnect'
+import SuiWalletConnect from '@/components/SuiWalletConnect'
 
 export default function Home() {
   return (
