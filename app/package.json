@@ -13,6 +13,7 @@
     "@mysten/sui.js": "^0.54.1",
     "@okxconnect/sui-provider": "^1.6.9",
     "@okxconnect/ui": "^1.6.9",
+    "@scure/bip39": "^1.5.1",
     "next": "15.1.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
