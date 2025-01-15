@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519'
+import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
+import { MultiSigPublicKey } from '@mysten/sui/multisig';
+
 import { fromB64, toB64 } from '@mysten/sui/utils'
 import * as bip39 from '@scure/bip39'
 import { SuiClient } from '@mysten/sui/client'
