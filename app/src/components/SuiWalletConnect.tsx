@@ -5,13 +5,11 @@ import { OKXUniversalConnectUI, THEME } from "@okxconnect/ui"
 import { OKXSuiProvider } from "@okxconnect/sui-provider"
 
 export default function SuiWalletConnect() {
-  const [okxUniversalConnectUI, setOkxUniversalConnectUI] = useState < any > (null)
-  const [suiProvider, setSuiProvider] = useState < any > (null)
+  const [okxUniversalConnectUI, setOkxUniversalConnectUI] = useState<any>(null)
+  const [suiProvider, setSuiProvider] = useState<any>(null)
   const [connected, setConnected] = useState(false)
-  const [accountInfo, setAccountInfo] = useState < { address: string;publicKey: string } | null > (null)
-  const [balances, setBalances] = useState < {
-    [key: string]: string } > ({})
-  const [objects, setObjects] = useState < any[] > ([])
+  const [accountInfo, setAccountInfo] = useState<{ address: string; publicKey: string } | null>(null)
+  const [coins, setCoins] = useState<any[]>([])
 
   useEffect(() => {
     const initOKXConnect = async () => {
@@ -53,8 +51,7 @@ export default function SuiWalletConnect() {
         setConnected(true)
         const account = await suiProvider.getAccount()
         setAccountInfo(account)
-        await fetchBalances(account.address)
-        await fetchObjects(account.address)
+        await fetchCoins(account.address)
       }
     } catch (error) {
       console.error("Failed to connect wallet:", error)
@@ -64,34 +61,22 @@ export default function SuiWalletConnect() {
   const disconnectWallet = () => {
     setConnected(false)
     setAccountInfo(null)
-    setBalances({})
-    setObjects([])
+    setCoins([])
   }
 
-  const fetchBalances = async (address: string) => {
+  const fetchCoins = async (address: string) => {
     if (!suiProvider) return
     try {
-      const coins = await suiProvider.getCoins(address)
-      const balanceMap: {
-        [key: string]: string } = {}
-      coins.forEach(coin => {
-        const balance = (BigInt(coin.balance) / BigInt(1e9)).toString()
-        balanceMap[coin.coinType] = balance
-      })
-      setBalances(balanceMap)
+      const ownedObjects = await suiProvider.getOwnedObjects(address)
+      const coinObjects = ownedObjects.filter((obj: any) => obj.type.startsWith('0x2::coin::Coin'))
+      setCoins(coinObjects)
     } catch (error) {
-      console.error("Failed to fetch balances:", error)
+      console.error("Failed to fetch coins:", error)
     }
   }
 
-  const fetchObjects = async (address: string) => {
-    if (!suiProvider) return
-    try {
-      const objectsResponse = await suiProvider.getOwnedObjects(address)
-      setObjects(objectsResponse.slice(0, 5))
-    } catch (error) {
-      console.error("Failed to fetch objects:", error)
-    }
+  const formatBalance = (balance: string) => {
+    return (parseInt(balance) / 1e9).toFixed(9)
   }
 
   const sendTransaction = async () => {
@@ -105,8 +90,7 @@ export default function SuiWalletConnect() {
       })
       const result = await suiProvider.signAndExecuteTransaction(tx)
       console.log('Transaction result:', result)
-      await fetchBalances(accountInfo.address)
-      await fetchObjects(accountInfo.address)
+      await fetchCoins(accountInfo.address)
     } catch (error) {
       console.error('Transaction failed:', error)
     }
@@ -127,19 +111,11 @@ export default function SuiWalletConnect() {
           <p className="mb-2">Connected to Sui Wallet</p>
           <p className="mb-2">Address: {accountInfo?.address}</p>
           <p className="mb-2">Public Key: {accountInfo?.publicKey}</p>
-          <h2 className="text-xl font-bold mt-4 mb-2">Balances:</h2>
+          <h2 className="text-xl font-bold mt-4 mb-2">Coins:</h2>
           <ul className="mb-4">
-            {Object.entries(balances).map(([coinType, balance]) => (
-              <li key={coinType} className="mb-1">
-                {coinType}: {balance} SUI
-              </li>
-            ))}
-          </ul>
-          <h2 className="text-xl font-bold mt-4 mb-2">Owned Objects (First 5):</h2>
-          <ul className="mb-4">
-            {objects.map((obj, index) => (
+            {coins.map((coin, index) => (
               <li key={index} className="mb-1">
-                ID: {obj.objectId}, Type: {obj.type}
+                Type: {coin.type}, Balance: {formatBalance(coin.balance)} SUI
               </li>
             ))}
           </ul>
@@ -160,3 +136,4 @@ export default function SuiWalletConnect() {
     </div>
   )
 }
+
